@@ -4,6 +4,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 [![Node.js](https://img.shields.io/badge/node-%3E%3D20-brightgreen.svg)](https://nodejs.org/)
 [![MCP](https://img.shields.io/badge/MCP-compatible-purple.svg)](https://modelcontextprotocol.io)
+[![CI](https://github.com/bartwaardenburg/kvk-mcp/actions/workflows/ci.yml/badge.svg)](https://github.com/bartwaardenburg/kvk-mcp/actions/workflows/ci.yml)
 
 A community-built [Model Context Protocol](https://modelcontextprotocol.io) (MCP) server for the [KVK API](https://developers.kvk.nl/) (Kamer van Koophandel / Dutch Chamber of Commerce). Search the Handelsregister, retrieve company profiles, location details, and trade names — all through natural language via any MCP-compatible AI client.
 
@@ -20,6 +21,7 @@ A community-built [Model Context Protocol](https://modelcontextprotocol.io) (MCP
 - **Response caching** with configurable TTL (300s for search, 600s for profiles — register data changes infrequently)
 - **Rate limit handling** with exponential backoff and `Retry-After` header support
 - **Toolset filtering** to expose only the tool categories you need
+- **Docker support** for containerized deployments via GHCR
 - **Actionable error messages** with context-aware recovery suggestions
 
 ## Supported Clients
@@ -128,6 +130,25 @@ Add to your Zed settings (`~/.zed/settings.json` on macOS, `~/.config/zed/settin
     }
   }
 }
+```
+
+### Docker
+
+```bash
+docker run -i --rm \
+  -e KVK_API_KEY=your-api-key \
+  ghcr.io/bartwaardenburg/kvk-mcp
+```
+
+### Codex CLI (TOML config alternative)
+
+If you prefer editing `~/.codex/config.toml` directly:
+
+```toml
+[mcp_servers.kvk-mcp]
+command = "npx"
+args = ["-y", "kvk-mcp"]
+env = { "KVK_API_KEY" = "your-api-key" }
 ```
 
 ### Other MCP Clients

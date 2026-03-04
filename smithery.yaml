@@ -1,0 +1,18 @@
+startCommand:
+  type: stdio
+  configSchema:
+    type: object
+    required:
+      - apiKey
+    properties:
+      apiKey:
+        type: string
+        description: KVK API key
+  commandFunction: |
+    (config) => ({
+      command: 'npx',
+      args: ['-y', 'kvk-mcp'],
+      env: {
+        KVK_API_KEY: config.apiKey
+      }
+    })
