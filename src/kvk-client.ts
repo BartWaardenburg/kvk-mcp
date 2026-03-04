@@ -62,13 +62,18 @@ export class KvkClient {
   async search(params: SearchParams): Promise<SearchResponse> {
     const query = new URLSearchParams();
 
-    if (params.handelsnaam) query.set("handelsnaam", params.handelsnaam);
+    if (params.naam) query.set("naam", params.naam);
     if (params.kvkNummer) query.set("kvkNummer", params.kvkNummer);
+    if (params.rsin) query.set("rsin", params.rsin);
     if (params.vestigingsnummer) query.set("vestigingsnummer", params.vestigingsnummer);
     if (params.straatnaam) query.set("straatnaam", params.straatnaam);
     if (params.plaats) query.set("plaats", params.plaats);
     if (params.postcode) query.set("postcode", params.postcode);
+    if (params.huisnummer !== undefined) query.set("huisnummer", String(params.huisnummer));
+    if (params.huisletter) query.set("huisletter", params.huisletter);
+    if (params.postbusnummer !== undefined) query.set("postbusnummer", String(params.postbusnummer));
     if (params.type) query.set("type", params.type);
+    if (params.InclusiefInactieveRegistraties !== undefined) query.set("InclusiefInactieveRegistraties", String(params.InclusiefInactieveRegistraties));
     if (params.pagina !== undefined) query.set("pagina", String(params.pagina));
     if (params.resultatenPerPagina !== undefined) query.set("resultatenPerPagina", String(params.resultatenPerPagina));
 

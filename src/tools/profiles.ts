@@ -1,16 +1,18 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import * as z from "zod/v4";
 import type { KvkClient } from "../kvk-client.js";
-import type { Adres, SbiActiviteit } from "../types.js";
+import type { Adres, SbiActiviteit, NaamgevingVestiging } from "../types.js";
 import { toTextResult, toErrorResult } from "../tool-result.js";
 
 const formatAdres = (adres: Adres): string => {
+  if (adres.volledigAdres) return adres.volledigAdres;
+
   const parts = [
     adres.straatnaam,
     adres.huisnummer !== undefined ? String(adres.huisnummer) : null,
     adres.huisletter,
-    adres.huisnummertoevoeging,
-  ].filter(Boolean).join("");
+    adres.huisnummerToevoeging,
+  ].filter(Boolean).join(" ");
 
   const line2 = [adres.postcode, adres.plaats].filter(Boolean).join(" ");
   const line3 = adres.land && adres.land !== "Nederland" ? adres.land : null;
@@ -19,7 +21,10 @@ const formatAdres = (adres: Adres): string => {
 };
 
 const formatActiviteit = (act: SbiActiviteit): string =>
-  `${act.sbiCode} - ${act.sbiOmschrijving}${act.indHoofdactiviteit ? " (hoofdactiviteit)" : ""}`;
+  `${act.sbiCode} - ${act.sbiOmschrijving}${act.indHoofdactiviteit === "Ja" ? " (hoofdactiviteit)" : ""}`;
+
+const isCommercieleVestiging = (v: NaamgevingVestiging): v is NaamgevingVestiging & { eersteHandelsnaam?: string; handelsnamen?: Array<{ naam: string; volgorde: number }> } =>
+  "eersteHandelsnaam" in v || "handelsnamen" in v;
 
 export const registerProfileTools = (server: McpServer, client: KvkClient): void => {
   server.registerTool(
@@ -141,8 +146,8 @@ export const registerProfileTools = (server: McpServer, client: KvkClient): void
     {
       title: "Get Trade Names",
       description:
-        "Get all trade names (handelsnamen) for a company by KVK number. " +
-        "Returns the statutory name and all registered trade names with their order.",
+        "Get all trade names (handelsnamen) for a company by KVK number using the Naamgeving API. " +
+        "Returns the statutory name and all registered trade names per vestiging (establishment).",
       annotations: { readOnlyHint: true, openWorldHint: true },
 
       inputSchema: z.object({
@@ -157,15 +162,29 @@ export const registerProfileTools = (server: McpServer, client: KvkClient): void
           `KVK number: ${naamgeving.kvkNummer}`,
           naamgeving.naam ? `Name: ${naamgeving.naam}` : null,
           naamgeving.statutaireNaam ? `Statutory name: ${naamgeving.statutaireNaam}` : null,
+          naamgeving.ookGenoemd ? `Also known as: ${naamgeving.ookGenoemd}` : null,
         ].filter(Boolean);
 
-        if (naamgeving.handelsnamen && naamgeving.handelsnamen.length > 0) {
-          lines.push("", "Trade names:");
-          for (const hn of naamgeving.handelsnamen) {
-            lines.push(`  ${hn.volgorde}. ${hn.naam}`);
+        if (naamgeving.vestigingen && naamgeving.vestigingen.length > 0) {
+          lines.push("", "Vestigingen:");
+          for (const v of naamgeving.vestigingen) {
+            lines.push(`  Vestigingsnummer: ${v.vestigingsnummer}`);
+            if (isCommercieleVestiging(v)) {
+              if (v.eersteHandelsnaam) {
+                lines.push(`    First trade name: ${v.eersteHandelsnaam}`);
+              }
+              if (v.handelsnamen && v.handelsnamen.length > 0) {
+                lines.push("    Trade names:");
+                for (const hn of v.handelsnamen) {
+                  lines.push(`      ${hn.volgorde}. ${hn.naam}`);
+                }
+              }
+            } else if ("naam" in v && v.naam) {
+              lines.push(`    Name: ${v.naam}`);
+            }
           }
         } else {
-          lines.push("", "No trade names registered.");
+          lines.push("", "No vestigingen with trade names registered.");
         }
 
         return toTextResult(

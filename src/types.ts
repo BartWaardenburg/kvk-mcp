@@ -3,29 +3,53 @@
 export interface HateoasLink {
   rel: string;
   href: string;
+  title?: string;
 }
 
 // --- Search ---
 
-export interface SearchResult {
-  kvkNummer: string;
-  handelsnaam: string;
+/** Address as returned in search results (nested under adres) */
+export interface BinnenlandsAdres {
+  type?: string;
   straatnaam?: string;
   huisnummer?: number;
-  huisnummerToevoeging?: string;
+  huisletter?: string;
+  postbusnummer?: number;
   postcode?: string;
   plaats?: string;
+}
+
+export interface BuitenlandsAdres {
   type?: string;
-  actief?: boolean;
+  straatHuisnummer?: string;
+  postcodeWoonplaats?: string;
+  land?: string;
+}
+
+export interface SearchResultAdres {
+  binnenlandsAdres?: BinnenlandsAdres;
+  buitenlandsAdres?: BuitenlandsAdres;
+}
+
+export interface SearchResult {
+  kvkNummer: string;
+  rsin?: string;
   vestigingsnummer?: string;
+  naam: string;
+  adres?: SearchResultAdres;
+  type?: string;
+  actief?: string;
+  vervallenNaam?: string;
   links?: HateoasLink[];
 }
 
 export interface SearchResponse {
-  resultaten: SearchResult[];
-  totaal: number;
   pagina: number;
   resultatenPerPagina: number;
+  totaal: number;
+  vorige?: string;
+  volgende?: string;
+  resultaten: SearchResult[];
 }
 
 // --- SBI Activiteiten ---
@@ -33,7 +57,7 @@ export interface SearchResponse {
 export interface SbiActiviteit {
   sbiCode: string;
   sbiOmschrijving: string;
-  indHoofdactiviteit: boolean;
+  indHoofdactiviteit: string;
 }
 
 // --- Handelsnaam ---
@@ -47,27 +71,65 @@ export interface Handelsnaam {
 
 export interface Adres {
   type?: string;
+  indAfgeschermd?: string;
+  volledigAdres?: string;
   straatnaam?: string;
   huisnummer?: number;
   huisletter?: string;
-  huisnummertoevoeging?: string;
+  huisnummerToevoeging?: string;
+  toevoegingAdres?: string;
   postcode?: string;
+  postbusnummer?: number;
   plaats?: string;
+  straatHuisnummer?: string;
+  postcodeWoonplaats?: string;
+  regio?: string;
   land?: string;
+  geoData?: GeoData;
+}
+
+export interface GeoData {
+  addresseerbaarObjectId?: string;
+  nummerAanduidingId?: string;
+  gpsLatitude?: number;
+  gpsLongitude?: number;
+  rijksdriehoekX?: number;
+  rijksdriehoekY?: number;
+  rijksdriehoekZ?: number;
 }
 
 // --- Basisprofiel ---
 
 export interface Basisprofiel {
   kvkNummer: string;
-  indNonMailing?: boolean;
+  indNonMailing?: string;
   naam: string;
   formeleRegistratiedatum?: string;
-  materieleRegistratie?: Record<string, unknown>;
+  materieleRegistratie?: MaterieleRegistratie;
   totaalWerkzamePersonen?: number;
   statutaireNaam?: string;
   handelsnamen?: Handelsnaam[];
   sbiActiviteiten?: SbiActiviteit[];
+  links?: HateoasLink[];
+  _embedded?: BasisprofielEmbedded;
+}
+
+export interface MaterieleRegistratie {
+  datumAanvang?: string;
+  datumEinde?: string;
+}
+
+export interface BasisprofielEmbedded {
+  hoofdvestiging?: Vestigingsprofiel;
+  eigenaar?: Eigenaar;
+}
+
+export interface Eigenaar {
+  rsin?: string;
+  rechtsvorm?: string;
+  uitgebreideRechtsvorm?: string;
+  adressen?: Adres[];
+  websites?: string[];
   links?: HateoasLink[];
 }
 
@@ -76,37 +138,69 @@ export interface Basisprofiel {
 export interface Vestigingsprofiel {
   vestigingsnummer: string;
   kvkNummer: string;
+  rsin?: string;
+  indNonMailing?: string;
+  formeleRegistratiedatum?: string;
+  materieleRegistratie?: MaterieleRegistratie;
   eersteHandelsnaam?: string;
-  indHoofdvestiging?: boolean;
-  indCommercieleVestiging?: boolean;
+  indHoofdvestiging?: string;
+  indCommercieleVestiging?: string;
+  voltijdWerkzamePersonen?: number;
   totaalWerkzamePersonen?: number;
+  deeltijdWerkzamePersonen?: number;
+  statutaireNaam?: string;
+  handelsnamen?: Handelsnaam[];
   adressen?: Adres[];
   websites?: string[];
   sbiActiviteiten?: SbiActiviteit[];
-  handelsnamen?: Handelsnaam[];
   links?: HateoasLink[];
 }
 
 // --- Naamgeving ---
 
+export interface NaamgevingVestigingCommercieel {
+  vestigingsnummer: string;
+  eersteHandelsnaam?: string;
+  handelsnamen?: Handelsnaam[];
+  links?: HateoasLink[];
+}
+
+export interface NaamgevingVestigingNietCommercieel {
+  vestigingsnummer: string;
+  naam?: string;
+  ookGenoemd?: string;
+  links?: HateoasLink[];
+}
+
+export type NaamgevingVestiging = NaamgevingVestigingCommercieel | NaamgevingVestigingNietCommercieel;
+
 export interface Naamgeving {
   kvkNummer: string;
-  naam?: string;
+  rsin?: string;
   statutaireNaam?: string;
-  handelsnamen?: Handelsnaam[];
+  naam?: string;
+  ookGenoemd?: string;
+  startdatum?: string;
+  einddatum?: string;
+  vestigingen?: NaamgevingVestiging[];
   links?: HateoasLink[];
 }
 
 // --- Search Parameters ---
 
 export interface SearchParams {
-  handelsnaam?: string;
+  naam?: string;
   kvkNummer?: string;
+  rsin?: string;
   vestigingsnummer?: string;
   straatnaam?: string;
   plaats?: string;
   postcode?: string;
+  huisnummer?: number;
+  huisletter?: string;
+  postbusnummer?: number;
   type?: string;
+  InclusiefInactieveRegistraties?: boolean;
   pagina?: number;
   resultatenPerPagina?: number;
 }

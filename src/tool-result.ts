@@ -37,7 +37,7 @@ const getRecoverySuggestion = (status: number, message: string, details: unknown
     if (lower.includes("vestigingsnummer")) {
       return "Invalid vestigingsnummer. Vestigingsnummers must be exactly 12 digits.";
     }
-    return "Invalid request. Provide at least one search parameter (handelsnaam, kvkNummer, vestigingsnummer, straatnaam, plaats, or postcode). Check that all values are in the correct format.";
+    return "Invalid request. Provide at least one search parameter (naam, kvkNummer, rsin, vestigingsnummer, straatnaam, plaats, or postcode). Check that all values are in the correct format.";
   }
 
   if (status >= 500) {
