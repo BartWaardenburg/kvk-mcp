@@ -57,11 +57,13 @@ If your app wants JSON, paste this and adapt the top-level key name to your clie
 
 ```json
 {
-  "kvk-mcp": {
-    "command": "npx",
-    "args": ["-y", "kvk-mcp"],
-    "env": {
-      "KVK_API_KEY": "your-api-key"
+  "<servers-key>": {
+    "kvk-mcp": {
+      "command": "npx",
+      "args": ["-y", "kvk-mcp"],
+      "env": {
+        "KVK_API_KEY": "your-api-key"
+      }
     }
   }
 }
@@ -102,18 +104,18 @@ If your app wants JSON, paste this and adapt the top-level key name to your clie
 
 This MCP server is not tied to one coding agent. It works with any MCP-compatible client or agent runtime that can start a stdio MCP server.
 
-| Client / runtime | Easiest setup |
+| Client / runtime | Docs |
 |---|---|
-| [Claude Desktop](https://claude.ai/download) + Cowork | JSON config (`claude_desktop_config.json`) |
-| [Claude Code](https://docs.anthropic.com/en/docs/claude-code) | One-liner: `claude mcp add` |
-| [Anthropic API (Messages API)](https://docs.anthropic.com/en/docs/agents-and-tools/mcp-connector) | Remote MCP connector in API requests |
-| [Codex CLI](https://github.com/openai/codex) (OpenAI) | One-liner: `codex mcp add` |
-| [Gemini CLI](https://github.com/google-gemini/gemini-cli) (Google) | One-liner: `gemini mcp add` |
-| [VS Code](https://code.visualstudio.com/) (Copilot) | Command Palette: `MCP: Add Server` |
-| [Cursor](https://cursor.com) | JSON config file |
-| [Windsurf](https://codeium.com/windsurf) | JSON config file |
-| [Cline](https://github.com/cline/cline) | UI settings |
-| [Zed](https://zed.dev) | JSON settings file |
+| Claude Code | [MCP in Claude Code](https://docs.anthropic.com/en/docs/claude-code/mcp) |
+| Anthropic API (Messages API) | [Remote MCP servers](https://docs.anthropic.com/en/docs/agents-and-tools/remote-mcp-servers) |
+| Codex CLI (OpenAI) | [Codex CLI docs](https://developers.openai.com/codex/cli) |
+| Gemini CLI (Google) | [Gemini CLI MCP server docs](https://google-gemini.github.io/gemini-cli/docs/tools/mcp-server.html) |
+| VS Code (Copilot) | [Use MCP servers in VS Code](https://code.visualstudio.com/docs/copilot/customization/mcp-servers) |
+| Claude Desktop | [MCP in Claude Desktop](https://docs.anthropic.com/en/docs/claude-desktop/mcp) |
+| Cursor | [Cursor docs](https://cursor.com/docs) |
+| Windsurf | [Windsurf MCP docs](https://docs.windsurf.com/windsurf/cascade/mcp) |
+| Cline | [Cline MCP docs](https://docs.cline.bot/mcp/) |
+| Zed | [Zed context servers docs](https://zed.dev/docs/assistant/context-servers) |
 | Any other MCP host | Use command/args/env from [Generic MCP Server Config](#generic-mcp-server-config) |
 
 ### Claude Ecosystem Notes
@@ -137,21 +139,33 @@ Use this in any MCP host that supports stdio servers:
 
 - **Command:** `npx`
 - **Args:** `["-y", "kvk-mcp"]`
-- **Environment variables:** `KVK_API_KEY`
+- **Required env vars:** `KVK_API_KEY`
+- **Optional env vars:** `KVK_CACHE_TTL`, `KVK_MAX_RETRIES`, `KVK_TOOLSETS` (see [Configuration](#configuration))
 
-Minimal JSON shape (adapt key names to your client, e.g. `mcpServers`, `servers`, or `context_servers`):
+Minimal JSON (adapt the top-level key to your host):
 
 ```json
 {
-  "kvk-mcp": {
-    "command": "npx",
-    "args": ["-y", "kvk-mcp"],
-    "env": {
-      "KVK_API_KEY": "your-api-key"
+  "<servers-key>": {
+    "kvk-mcp": {
+      "command": "npx",
+      "args": ["-y", "kvk-mcp"],
+      "env": {
+        "KVK_API_KEY": "your-api-key"
+      }
     }
   }
 }
 ```
+
+Host key mapping:
+
+| Host | Top-level key | Notes |
+|---|---|---|
+| VS Code | `servers` | Add `"type": "stdio"` on the server object |
+| Claude Desktop / Cursor / Windsurf / Cline | `mcpServers` | Same command/args/env block |
+| Zed | `context_servers` | Same command/args/env block |
+| Codex CLI (TOML) | `mcp_servers` | Uses TOML, shown below |
 
 ### Claude Code
 
@@ -175,75 +189,27 @@ codex mcp add kvk-mcp \
 gemini mcp add kvk-mcp -- npx -y kvk-mcp
 ```
 
-Set environment variable `KVK_API_KEY` separately via `~/.gemini/settings.json`.
+Set `KVK_API_KEY` in `~/.gemini/settings.json`.
 
 ### VS Code (Copilot)
 
-Open the Command Palette (`Cmd+Shift+P` / `Ctrl+Shift+P`) > `MCP: Add Server` > select **Command (stdio)**.
+Open Command Palette (`Cmd+Shift+P` / `Ctrl+Shift+P`) > `MCP: Add Server` > **Command (stdio)**, or use `.vscode/mcp.json` with top-level key `servers` and the canonical command/args/env block from [Generic MCP Server Config](#generic-mcp-server-config).
 
-Or add to `.vscode/mcp.json` in your project directory:
-
-```json
-{
-  "servers": {
-    "kvk-mcp": {
-      "type": "stdio",
-      "command": "npx",
-      "args": ["-y", "kvk-mcp"],
-      "env": {
-        "KVK_API_KEY": "your-api-key"
-      }
-    }
-  }
-}
-```
-
-### Claude Desktop + Cowork / Cursor / Windsurf / Cline
+### Claude Desktop + Cowork / Cursor / Windsurf / Cline / Zed
 
 Cowork runs inside Claude Desktop and uses the same connected MCP servers and permissions. Configure once in Claude Desktop, then the server is available in Cowork.
 
-These clients share the same JSON format. Add the config below to the appropriate file:
+Use the canonical config block and place it in the host file below with the matching top-level key.
 
-| Client | Config file |
-|---|---|
-| Claude Desktop (macOS) | `~/Library/Application Support/Claude/claude_desktop_config.json` |
-| Claude Desktop (Windows) | `%APPDATA%\Claude\claude_desktop_config.json` |
-| Cursor (project) | `.cursor/mcp.json` |
-| Cursor (global) | `~/.cursor/mcp.json` |
-| Windsurf | `~/.codeium/windsurf/mcp_config.json` |
-| Cline | Settings > MCP Servers > Edit |
-
-```json
-{
-  "mcpServers": {
-    "kvk-mcp": {
-      "command": "npx",
-      "args": ["-y", "kvk-mcp"],
-      "env": {
-        "KVK_API_KEY": "your-api-key"
-      }
-    }
-  }
-}
-```
-
-### Zed
-
-Add to your Zed settings (`~/.zed/settings.json` on macOS, `~/.config/zed/settings.json` on Linux):
-
-```json
-{
-  "context_servers": {
-    "kvk-mcp": {
-      "command": "npx",
-      "args": ["-y", "kvk-mcp"],
-      "env": {
-        "KVK_API_KEY": "your-api-key"
-      }
-    }
-  }
-}
-```
+| Client | Config location | Top-level key |
+|---|---|---|
+| Claude Desktop (macOS) | `~/Library/Application Support/Claude/claude_desktop_config.json` | `mcpServers` |
+| Claude Desktop (Windows) | `%APPDATA%\\Claude\\claude_desktop_config.json` | `mcpServers` |
+| Cursor (project) | `.cursor/mcp.json` | `mcpServers` |
+| Cursor (global) | `~/.cursor/mcp.json` | `mcpServers` |
+| Windsurf | `~/.codeium/windsurf/mcp_config.json` | `mcpServers` |
+| Cline | MCP settings UI | `mcpServers` |
+| Zed (macOS/Linux) | `~/.zed/settings.json` or `~/.config/zed/settings.json` | `context_servers` |
 
 ### Docker
 
@@ -268,13 +234,26 @@ env = { "KVK_API_KEY" = "your-api-key" }
 
 Use the values from [Generic MCP Server Config](#generic-mcp-server-config).
 
+## Terminology
+
+What is portable across hosts:
+
+- MCP server runtime settings (`command`, `args`, `env`)
+- Transport model (`stdio` command server)
+- Tool names and tool schemas exposed by this server
+
+What is host/vendor-specific (not portable as-is):
+
+- Host config key names (`servers`, `mcpServers`, `context_servers`, `mcp_servers`)
+- Host UX/workflows for adding servers (CLI commands, UI menus, settings paths)
+- Anthropic-specific concepts such as [Claude Desktop local MCP servers](https://docs.anthropic.com/en/docs/claude-desktop/mcp), [Claude Connectors via remote MCP](https://docs.anthropic.com/en/docs/agents-and-tools/remote-mcp-servers), and [Claude Code plugins](https://docs.anthropic.com/en/docs/claude-code/plugins) used in Cowork workflows
+
 ## Security Notes
 
-- Only connect MCP servers you trust. Servers can execute operations on your behalf.
-- Scope credentials per server and per environment (`dev`, `staging`, `prod`) instead of sharing one broad API key.
-- Prefer read-only or least-privilege API keys where supported.
-- Keep client-side approval prompts enabled for write/destructive tools.
-- For team setups, use centrally managed server configs and audit changes.
+- **Trust model:** Any prompt or agent allowed to call this MCP server can execute KVK API actions with the configured credentials.
+- **Least-privilege credentials:** Use separate KVK API keys per environment/team/use case and only required API subscriptions.
+- **Write-action approvals:** Enable host-side approvals for mutating tools (`create_subscription` and related mutation workflows).
+- **Team config governance:** Keep shared MCP config in version control, require review for changes to command/args/env/toolset filtering, and keep secrets in a vault or host secret manager (not in plain-text repo files).
 
 </details>
 
