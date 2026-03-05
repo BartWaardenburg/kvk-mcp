@@ -3,13 +3,14 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { KvkClient } from "./kvk-client.js";
 import { registerSearchTools } from "./tools/search.js";
 import { registerProfileTools } from "./tools/profiles.js";
+import { registerMutationTools } from "./tools/mutations.js";
 
 const require = createRequire(import.meta.url);
 const { version } = require("../package.json") as { version: string };
 
-export type Toolset = "search" | "profiles";
+export type Toolset = "search" | "profiles" | "mutations";
 
-const ALL_TOOLSETS: Toolset[] = ["search", "profiles"];
+const ALL_TOOLSETS: Toolset[] = ["search", "profiles", "mutations"];
 
 export const parseToolsets = (env?: string): Set<Toolset> => {
   if (!env) return new Set(ALL_TOOLSETS);
@@ -31,6 +32,7 @@ type ToolRegisterer = (server: McpServer, client: KvkClient) => void;
 const toolsetRegistry: Record<Toolset, ToolRegisterer[]> = {
   search: [registerSearchTools],
   profiles: [registerProfileTools],
+  mutations: [registerMutationTools],
 };
 
 export const createServer = (

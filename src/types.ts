@@ -186,6 +186,69 @@ export interface Naamgeving {
   links?: HateoasLink[];
 }
 
+// --- Vestiging List ---
+
+export interface VestigingBasisInfo {
+  vestigingsnummer: string;
+  kvkNummer: string;
+  eersteHandelsnaam?: string;
+  indHoofdvestiging?: string;
+  indCommercieleVestiging?: string;
+  links?: HateoasLink[];
+}
+
+export interface VestigingList {
+  kvkNummer: string;
+  aantalCommercieleVestigingen: number;
+  aantalNietCommercieleVestigingen: number;
+  totaalAantalVestigingen: number;
+  vestigingen: VestigingBasisInfo[];
+  links?: HateoasLink[];
+}
+
+// --- Mutatieservice ---
+
+export interface Abonnement {
+  abonnementId: string;
+  naam?: string;
+  beschrijving?: string;
+  links?: HateoasLink[];
+}
+
+export interface AbonnementenResponse {
+  abonnementen: Abonnement[];
+  links?: HateoasLink[];
+}
+
+export interface Signaal {
+  signaalId: string;
+  abonnementId: string;
+  kvkNummer?: string;
+  vestigingsnummer?: string;
+  type?: string;
+  registratietijdstip?: string;
+  signaalTijdstip?: string;
+  omschrijving?: string;
+  details?: Record<string, unknown>;
+  links?: HateoasLink[];
+}
+
+export interface PagedSignalen {
+  pagina: number;
+  aantal: number;
+  totaal: number;
+  signalen: Signaal[];
+  links?: HateoasLink[];
+}
+
+export interface MutatieSearchParams {
+  abonnementId: string;
+  vanaf?: string;
+  tot?: string;
+  pagina?: number;
+  aantal?: number;
+}
+
 // --- Search Parameters ---
 
 export interface SearchParams {
@@ -199,8 +262,8 @@ export interface SearchParams {
   huisnummer?: number;
   huisletter?: string;
   postbusnummer?: number;
-  type?: string;
-  InclusiefInactieveRegistraties?: boolean;
+  type?: string[];
+  inclusiefInactieveRegistraties?: boolean;
   pagina?: number;
   resultatenPerPagina?: number;
 }

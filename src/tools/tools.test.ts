@@ -3,6 +3,7 @@ import type { KvkClient } from "../kvk-client.js";
 import { KvkApiError } from "../kvk-client.js";
 import { registerSearchTools } from "./search.js";
 import { registerProfileTools } from "./profiles.js";
+import { registerMutationTools } from "./mutations.js";
 
 type ToolHandler = (input: Record<string, unknown>) => Promise<unknown>;
 
@@ -33,6 +34,12 @@ const createMockClient = (): Record<string, ReturnType<typeof vi.fn>> => ({
   getBasisprofiel: vi.fn(),
   getVestigingsprofiel: vi.fn(),
   getNaamgeving: vi.fn(),
+  getEigenaar: vi.fn(),
+  getHoofdvestiging: vi.fn(),
+  getVestigingen: vi.fn(),
+  listAbonnementen: vi.fn(),
+  listSignalen: vi.fn(),
+  getSignaal: vi.fn(),
 });
 
 // --- Search Tools ---
@@ -503,6 +510,271 @@ describe("profile tools", () => {
 
       expect(result.content[0].text).toContain("First trade name: Only First Name");
       expect(result.content[0].text).not.toContain("Trade names:");
+    });
+  });
+
+  describe("get_company_owner", () => {
+    const handler = () => server.getHandler("get_company_owner");
+
+    it("returns formatted owner info", async () => {
+      client.getEigenaar.mockResolvedValueOnce({
+        rsin: "123456789",
+        rechtsvorm: "Besloten Vennootschap",
+        uitgebreideRechtsvorm: "Besloten Vennootschap met beperkte aansprakelijkheid",
+        adressen: [{ type: "bezoekadres", volledigAdres: "Keizersgracht 100, 1015AA Amsterdam" }],
+        websites: ["https://example.com"],
+      });
+
+      const result = (await handler()({ kvkNummer: "12345678" })) as ToolResult;
+
+      expect(result.isError).toBeUndefined();
+      expect(result.content[0].text).toContain("RSIN: 123456789");
+      expect(result.content[0].text).toContain("Legal form: Besloten Vennootschap");
+      expect(result.content[0].text).toContain("Extended legal form:");
+      expect(result.content[0].text).toContain("Addresses:");
+      expect(result.content[0].text).toContain("Websites:");
+    });
+
+    it("handles minimal owner response", async () => {
+      client.getEigenaar.mockResolvedValueOnce({});
+
+      const result = (await handler()({ kvkNummer: "12345678" })) as ToolResult;
+
+      expect(result.content[0].text).toContain("KVK number: 12345678");
+      expect(result.content[0].text).not.toContain("RSIN:");
+    });
+
+    it("handles API errors", async () => {
+      client.getEigenaar.mockRejectedValueOnce(apiError);
+
+      const result = (await handler()({ kvkNummer: "12345678" })) as ToolResult;
+
+      expect(result.isError).toBe(true);
+    });
+  });
+
+  describe("get_main_location", () => {
+    const handler = () => server.getHandler("get_main_location");
+
+    it("returns formatted main location", async () => {
+      client.getHoofdvestiging.mockResolvedValueOnce({
+        vestigingsnummer: "000012345678",
+        kvkNummer: "12345678",
+        eersteHandelsnaam: "Hoofd BV",
+        indHoofdvestiging: "Ja",
+        totaalWerkzamePersonen: 10,
+      });
+
+      const result = (await handler()({ kvkNummer: "12345678" })) as ToolResult;
+
+      expect(result.isError).toBeUndefined();
+      expect(result.content[0].text).toContain("Name: Hoofd BV");
+      expect(result.content[0].text).toContain("Vestigingsnummer: 000012345678");
+      expect(result.content[0].text).toContain("Main location: Ja");
+    });
+
+    it("handles API errors", async () => {
+      client.getHoofdvestiging.mockRejectedValueOnce(apiError);
+
+      const result = (await handler()({ kvkNummer: "12345678" })) as ToolResult;
+
+      expect(result.isError).toBe(true);
+    });
+  });
+
+  describe("get_company_locations", () => {
+    const handler = () => server.getHandler("get_company_locations");
+
+    it("returns formatted locations list", async () => {
+      client.getVestigingen.mockResolvedValueOnce({
+        kvkNummer: "12345678",
+        aantalCommercieleVestigingen: 2,
+        aantalNietCommercieleVestigingen: 1,
+        totaalAantalVestigingen: 3,
+        vestigingen: [
+          { vestigingsnummer: "000000000001", kvkNummer: "12345678", eersteHandelsnaam: "Hoofd", indHoofdvestiging: "Ja" },
+          { vestigingsnummer: "000000000002", kvkNummer: "12345678", eersteHandelsnaam: "Filiaal", indCommercieleVestiging: "Ja" },
+          { vestigingsnummer: "000000000003", kvkNummer: "12345678", indCommercieleVestiging: "Nee" },
+        ],
+      });
+
+      const result = (await handler()({ kvkNummer: "12345678" })) as ToolResult;
+
+      expect(result.isError).toBeUndefined();
+      expect(result.content[0].text).toContain("Commercial locations: 2");
+      expect(result.content[0].text).toContain("Non-commercial locations: 1");
+      expect(result.content[0].text).toContain("Total locations: 3");
+      expect(result.content[0].text).toContain("Hoofd");
+      expect(result.content[0].text).toContain("(hoofdvestiging)");
+      expect(result.content[0].text).toContain("(commercieel)");
+      expect(result.content[0].text).toContain("(niet-commercieel)");
+    });
+
+    it("handles API errors", async () => {
+      client.getVestigingen.mockRejectedValueOnce(apiError);
+
+      const result = (await handler()({ kvkNummer: "12345678" })) as ToolResult;
+
+      expect(result.isError).toBe(true);
+    });
+  });
+});
+
+// --- Mutation Tools ---
+
+describe("mutation tools", () => {
+  let server: ReturnType<typeof createMockServer>;
+  let client: Record<string, ReturnType<typeof vi.fn>>;
+
+  beforeEach(() => {
+    server = createMockServer();
+    client = createMockClient();
+    registerMutationTools(server as never, client as unknown as KvkClient);
+  });
+
+  describe("list_subscriptions", () => {
+    const handler = () => server.getHandler("list_subscriptions");
+
+    it("returns formatted subscriptions", async () => {
+      client.listAbonnementen.mockResolvedValueOnce({
+        abonnementen: [
+          { abonnementId: "ab1", naam: "Test Sub", beschrijving: "Description" },
+          { abonnementId: "ab2", naam: "Another Sub" },
+        ],
+      });
+
+      const result = (await handler()({})) as ToolResult;
+
+      expect(result.isError).toBeUndefined();
+      expect(result.content[0].text).toContain("Found 2 subscriptions");
+      expect(result.content[0].text).toContain("ID: ab1");
+      expect(result.content[0].text).toContain("Name: Test Sub");
+      expect(result.content[0].text).toContain("Description: Description");
+    });
+
+    it("returns message when no subscriptions", async () => {
+      client.listAbonnementen.mockResolvedValueOnce({ abonnementen: [] });
+
+      const result = (await handler()({})) as ToolResult;
+
+      expect(result.content[0].text).toContain("No subscriptions found");
+    });
+
+    it("handles null abonnementen", async () => {
+      client.listAbonnementen.mockResolvedValueOnce({});
+
+      const result = (await handler()({})) as ToolResult;
+
+      expect(result.content[0].text).toContain("No subscriptions found");
+    });
+
+    it("handles API errors", async () => {
+      client.listAbonnementen.mockRejectedValueOnce(apiError);
+
+      const result = (await handler()({})) as ToolResult;
+
+      expect(result.isError).toBe(true);
+    });
+  });
+
+  describe("list_signals", () => {
+    const handler = () => server.getHandler("list_signals");
+
+    it("returns formatted signals", async () => {
+      client.listSignalen.mockResolvedValueOnce({
+        pagina: 1,
+        aantal: 100,
+        totaal: 1,
+        signalen: [
+          {
+            signaalId: "s1",
+            abonnementId: "ab1",
+            kvkNummer: "12345678",
+            type: "GewijzigdeInschrijving",
+            omschrijving: "Company changed",
+          },
+        ],
+      });
+
+      const result = (await handler()({ abonnementId: "ab1", pagina: 1, aantal: 100 })) as ToolResult;
+
+      expect(result.isError).toBeUndefined();
+      expect(result.content[0].text).toContain("Found 1 signal");
+      expect(result.content[0].text).toContain("ID: s1");
+      expect(result.content[0].text).toContain("KVK: 12345678");
+      expect(result.content[0].text).toContain("Type: GewijzigdeInschrijving");
+    });
+
+    it("returns message when no signals", async () => {
+      client.listSignalen.mockResolvedValueOnce({
+        pagina: 1,
+        aantal: 100,
+        totaal: 0,
+        signalen: [],
+      });
+
+      const result = (await handler()({ abonnementId: "ab1", pagina: 1, aantal: 100 })) as ToolResult;
+
+      expect(result.content[0].text).toContain("No signals found");
+    });
+
+    it("handles API errors", async () => {
+      client.listSignalen.mockRejectedValueOnce(apiError);
+
+      const result = (await handler()({ abonnementId: "ab1", pagina: 1, aantal: 100 })) as ToolResult;
+
+      expect(result.isError).toBe(true);
+    });
+  });
+
+  describe("get_signal", () => {
+    const handler = () => server.getHandler("get_signal");
+
+    it("returns formatted signal details", async () => {
+      client.getSignaal.mockResolvedValueOnce({
+        signaalId: "s1",
+        abonnementId: "ab1",
+        kvkNummer: "12345678",
+        vestigingsnummer: "000012345678",
+        type: "GewijzigdeInschrijving",
+        registratietijdstip: "2025-06-01T10:00:00Z",
+        signaalTijdstip: "2025-06-01T10:05:00Z",
+        omschrijving: "Company registration changed",
+        details: { veld: "naam", oud: "Old BV", nieuw: "New BV" },
+      });
+
+      const result = (await handler()({ abonnementId: "ab1", signaalId: "s1" })) as ToolResult;
+
+      expect(result.isError).toBeUndefined();
+      expect(result.content[0].text).toContain("Signal ID: s1");
+      expect(result.content[0].text).toContain("Subscription ID: ab1");
+      expect(result.content[0].text).toContain("KVK number: 12345678");
+      expect(result.content[0].text).toContain("Vestigingsnummer: 000012345678");
+      expect(result.content[0].text).toContain("Type: GewijzigdeInschrijving");
+      expect(result.content[0].text).toContain("Registration time:");
+      expect(result.content[0].text).toContain("Signal time:");
+      expect(result.content[0].text).toContain("Description: Company registration changed");
+      expect(result.content[0].text).toContain("Details:");
+    });
+
+    it("handles minimal signal", async () => {
+      client.getSignaal.mockResolvedValueOnce({
+        signaalId: "s1",
+        abonnementId: "ab1",
+      });
+
+      const result = (await handler()({ abonnementId: "ab1", signaalId: "s1" })) as ToolResult;
+
+      expect(result.content[0].text).toContain("Signal ID: s1");
+      expect(result.content[0].text).not.toContain("KVK number:");
+    });
+
+    it("handles API errors", async () => {
+      client.getSignaal.mockRejectedValueOnce(apiError);
+
+      const result = (await handler()({ abonnementId: "ab1", signaalId: "s1" })) as ToolResult;
+
+      expect(result.isError).toBe(true);
     });
   });
 });

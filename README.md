@@ -13,11 +13,16 @@ A community-built [Model Context Protocol](https://modelcontextprotocol.io) (MCP
 
 ## Features
 
-- **4 tools** across 2 categories covering the KVK Handelsregister APIs
+- **10 tools** across 3 categories covering the KVK Handelsregister and Mutatieservice APIs
 - **Company search** — find businesses by name, KVK number, RSIN, address, postal code, city, or entity type
 - **Basic company profiles** — registration date, legal form, trade names, SBI activity codes, employee count
+- **Company owner** — RSIN, legal form (rechtsvorm), addresses, and websites of the company owner
+- **Main location** — address, trade name, websites, SBI activities, and employees of the hoofdvestiging
+- **All locations** — list all commercial and non-commercial vestigingen for a company
 - **Location profiles** — branch addresses, business activities, contact details, commercial indicators
 - **Trade name lookups** — statutory names, alternate trade names, and non-commercial designations
+- **Mutation subscriptions** — list active Mutatieservice subscriptions
+- **Mutation signals** — browse and inspect change signals for monitored companies
 - **Input validation** via Zod schemas on every tool for safe, predictable operations
 - **Response caching** with configurable TTL (300s for search, 600s for profiles — register data changes infrequently)
 - **Rate limit handling** with exponential backoff and `Retry-After` header support
@@ -186,9 +191,10 @@ Get your API key from the [KVK Developer Portal](https://developers.kvk.nl/). Yo
 2. Navigate to **API's aanvragen** (Request APIs)
 3. Subscribe to the APIs you need:
    - **Zoeken API** (Search) — required for `search_companies`
-   - **Basisprofiel API** — required for `get_company_profile`
+   - **Basisprofiel API** — required for `get_company_profile`, `get_company_owner`, `get_main_location`, `get_company_locations`
    - **Vestigingsprofiel API** — required for `get_location_profile`
    - **Naamgeving API** — required for `get_trade_names`
+   - **Mutatieservice API** — required for `list_subscriptions`, `list_signals`, `get_signal`
 4. Your API key will be generated after approval
 
 ### API Subscriptions Per Tool
@@ -196,9 +202,10 @@ Get your API key from the [KVK Developer Portal](https://developers.kvk.nl/). Yo
 | API Subscription | Tools |
 |---|---|
 | **Zoeken** (Search) | `search_companies` |
-| **Basisprofiel** (Basic Profile) | `get_company_profile` |
+| **Basisprofiel** (Basic Profile) | `get_company_profile`, `get_company_owner`, `get_main_location`, `get_company_locations` |
 | **Vestigingsprofiel** (Location Profile) | `get_location_profile` |
 | **Naamgeving** (Trade Names) | `get_trade_names` |
+| **Mutatieservice** (Mutation Service) | `list_subscriptions`, `list_signals`, `get_signal` |
 
 ## Available Tools
 
@@ -213,8 +220,19 @@ Get your API key from the [KVK Developer Portal](https://developers.kvk.nl/). Yo
 | Tool | Description |
 |---|---|
 | `get_company_profile` | Get the basic company profile (basisprofiel) by KVK number — includes statutory name, trade names, registration dates, SBI activity codes, employee count, legal form, and main branch details |
+| `get_company_owner` | Get the owner (eigenaar) of a company by KVK number — includes RSIN, legal form (rechtsvorm), addresses, and websites |
+| `get_main_location` | Get the main location (hoofdvestiging) for a company by KVK number — includes address, trade name, websites, SBI activities, and employees |
+| `get_company_locations` | List all locations (vestigingen) for a company by KVK number — includes counts and details of commercial and non-commercial locations |
 | `get_location_profile` | Get a location profile (vestigingsprofiel) by vestigingsnummer — includes full address, business activities, employee breakdown, website, and commercial indicators |
 | `get_trade_names` | Get all trade names (handelsnamen) for a KVK number — includes statutory name, commercial and non-commercial designations per branch |
+
+### Mutations
+
+| Tool | Description |
+|---|---|
+| `list_subscriptions` | List all mutation subscriptions (abonnementen) for the KVK Mutatieservice — returns active subscriptions with IDs and descriptions |
+| `list_signals` | List mutation signals (signalen) for a specific subscription — returns a paged list of change signals with filtering by date range |
+| `get_signal` | Get the full details of a specific mutation signal by subscription ID and signal ID |
 
 ## Toolset Filtering
 
@@ -227,7 +245,8 @@ KVK_TOOLSETS=search
 | Toolset | Tools included |
 |---|---|
 | `search` | Company search in the Handelsregister |
-| `profiles` | Basic profiles, location profiles, and trade names |
+| `profiles` | Basic profiles, owner, main location, all locations, location profiles, and trade names |
+| `mutations` | Mutation subscriptions, signals, and signal details (Mutatieservice) |
 
 When not set, all toolsets are enabled. Invalid names are ignored; if all names are invalid, all toolsets are enabled as a fallback.
 
@@ -251,6 +270,11 @@ Once connected, you can interact with the KVK API using natural language:
 - "What trade names does KVK 12345678 use?"
 - "Find all active companies on Herengracht in Amsterdam"
 - "How many employees does this company have?"
+- "Who is the owner of KVK 12345678?"
+- "What is the main location for this company?"
+- "List all locations for KVK 12345678"
+- "Show my mutation subscriptions"
+- "What changes have been signalled for this subscription?"
 
 ## Development
 
@@ -284,7 +308,8 @@ src/
   update-checker.ts     # NPM update notifications
   tools/
     search.ts           # Company search in the Handelsregister
-    profiles.ts         # Company profiles, location profiles, and trade names
+    profiles.ts         # Company profiles, owner, locations, and trade names
+    mutations.ts        # Mutation subscriptions and signals (Mutatieservice)
 ```
 
 ## Requirements

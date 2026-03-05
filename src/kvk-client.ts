@@ -5,6 +5,12 @@ import type {
   Basisprofiel,
   Vestigingsprofiel,
   Naamgeving,
+  VestigingList,
+  Eigenaar,
+  AbonnementenResponse,
+  MutatieSearchParams,
+  PagedSignalen,
+  Signaal,
 } from "./types.js";
 
 export class KvkApiError extends Error {
@@ -72,8 +78,10 @@ export class KvkClient {
     if (params.huisnummer !== undefined) query.set("huisnummer", String(params.huisnummer));
     if (params.huisletter) query.set("huisletter", params.huisletter);
     if (params.postbusnummer !== undefined) query.set("postbusnummer", String(params.postbusnummer));
-    if (params.type) query.set("type", params.type);
-    if (params.InclusiefInactieveRegistraties !== undefined) query.set("InclusiefInactieveRegistraties", String(params.InclusiefInactieveRegistraties));
+    if (params.type) {
+      for (const t of params.type) query.append("type", t);
+    }
+    if (params.inclusiefInactieveRegistraties !== undefined) query.set("inclusiefInactieveRegistraties", String(params.inclusiefInactieveRegistraties));
     if (params.pagina !== undefined) query.set("pagina", String(params.pagina));
     if (params.resultatenPerPagina !== undefined) query.set("resultatenPerPagina", String(params.resultatenPerPagina));
 
@@ -89,21 +97,23 @@ export class KvkClient {
 
   // --- Basisprofielen ---
 
-  async getBasisprofiel(kvkNummer: string): Promise<Basisprofiel> {
+  async getBasisprofiel(kvkNummer: string, geoData?: boolean): Promise<Basisprofiel> {
+    const query = geoData ? "?geoData=true" : "";
     return this.cachedRequest(
-      `basisprofiel:${kvkNummer}`,
+      `basisprofiel:${kvkNummer}:${geoData ?? false}`,
       600_000,
-      () => this.request<Basisprofiel>(`/v1/basisprofielen/${encodeURIComponent(kvkNummer)}`),
+      () => this.request<Basisprofiel>(`/v1/basisprofielen/${encodeURIComponent(kvkNummer)}${query}`),
     );
   }
 
   // --- Vestigingsprofielen ---
 
-  async getVestigingsprofiel(vestigingsnummer: string): Promise<Vestigingsprofiel> {
+  async getVestigingsprofiel(vestigingsnummer: string, geoData?: boolean): Promise<Vestigingsprofiel> {
+    const query = geoData ? "?geoData=true" : "";
     return this.cachedRequest(
-      `vestigingsprofiel:${vestigingsnummer}`,
+      `vestigingsprofiel:${vestigingsnummer}:${geoData ?? false}`,
       600_000,
-      () => this.request<Vestigingsprofiel>(`/v1/vestigingsprofielen/${encodeURIComponent(vestigingsnummer)}`),
+      () => this.request<Vestigingsprofiel>(`/v1/vestigingsprofielen/${encodeURIComponent(vestigingsnummer)}${query}`),
     );
   }
 
@@ -114,6 +124,61 @@ export class KvkClient {
       `naamgeving:${kvkNummer}`,
       600_000,
       () => this.request<Naamgeving>(`/v1/naamgevingen/kvknummer/${encodeURIComponent(kvkNummer)}`),
+    );
+  }
+
+  // --- Basisprofiel sub-endpoints ---
+
+  async getEigenaar(kvkNummer: string, geoData?: boolean): Promise<Eigenaar> {
+    const query = geoData ? "?geoData=true" : "";
+    return this.cachedRequest(
+      `eigenaar:${kvkNummer}:${geoData ?? false}`,
+      600_000,
+      () => this.request<Eigenaar>(`/v1/basisprofielen/${encodeURIComponent(kvkNummer)}/eigenaar${query}`),
+    );
+  }
+
+  async getHoofdvestiging(kvkNummer: string, geoData?: boolean): Promise<Vestigingsprofiel> {
+    const query = geoData ? "?geoData=true" : "";
+    return this.cachedRequest(
+      `hoofdvestiging:${kvkNummer}:${geoData ?? false}`,
+      600_000,
+      () => this.request<Vestigingsprofiel>(`/v1/basisprofielen/${encodeURIComponent(kvkNummer)}/hoofdvestiging${query}`),
+    );
+  }
+
+  async getVestigingen(kvkNummer: string): Promise<VestigingList> {
+    return this.cachedRequest(
+      `vestigingen:${kvkNummer}`,
+      600_000,
+      () => this.request<VestigingList>(`/v1/basisprofielen/${encodeURIComponent(kvkNummer)}/vestigingen`),
+    );
+  }
+
+  // --- Mutatieservice ---
+
+  async listAbonnementen(): Promise<AbonnementenResponse> {
+    return this.cachedRequest(
+      "abonnementen",
+      300_000,
+      () => this.request<AbonnementenResponse>("/v1/abonnementen"),
+    );
+  }
+
+  async listSignalen(params: MutatieSearchParams): Promise<PagedSignalen> {
+    const query = new URLSearchParams();
+    if (params.vanaf) query.set("vanaf", params.vanaf);
+    if (params.tot) query.set("tot", params.tot);
+    if (params.pagina !== undefined) query.set("pagina", String(params.pagina));
+    if (params.aantal !== undefined) query.set("aantal", String(params.aantal));
+    const qs = query.toString();
+    const path = `/v1/abonnementen/${encodeURIComponent(params.abonnementId)}${qs ? `?${qs}` : ""}`;
+    return this.request<PagedSignalen>(path);
+  }
+
+  async getSignaal(abonnementId: string, signaalId: string): Promise<Signaal> {
+    return this.request<Signaal>(
+      `/v1/abonnementen/${encodeURIComponent(abonnementId)}/signalen/${encodeURIComponent(signaalId)}`,
     );
   }
 

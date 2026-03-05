@@ -42,17 +42,17 @@ export const registerSearchTools = (server: McpServer, client: KvkClient): void 
         vestigingsnummer: z.string().regex(/^\d{12}$/).optional().describe("Vestigingsnummer / location number (12 digits)."),
         straatnaam: z.string().optional().describe("Street name."),
         plaats: z.string().optional().describe("City name."),
-        postcode: z.string().optional().describe("Postal code (e.g. 1234AB). Only in combination with huisnummer."),
+        postcode: z.string().regex(/^[0-9]{4}[a-zA-Z]{2}$/).optional().describe("Postal code (e.g. 1234AB). Only in combination with huisnummer."),
         huisnummer: z.number().int().min(1).optional().describe("House number. Only in combination with postcode."),
         huisletter: z.string().max(1).optional().describe("House letter suffix. Only in combination with huisnummer."),
         postbusnummer: z.number().int().min(1).optional().describe("PO box number. Only in combination with postcode."),
-        type: z.enum(["hoofdvestiging", "nevenvestiging", "rechtspersoon"]).optional().describe("Type of entity: hoofdvestiging (main location), nevenvestiging (branch), or rechtspersoon (legal entity)."),
-        InclusiefInactieveRegistraties: z.boolean().optional().describe("Include inactive registrations. Default is false."),
+        type: z.array(z.enum(["hoofdvestiging", "nevenvestiging", "rechtspersoon"])).optional().describe("Type of entity: hoofdvestiging (main location), nevenvestiging (branch), or rechtspersoon (legal entity)."),
+        inclusiefInactieveRegistraties: z.boolean().optional().describe("Include inactive registrations. Default is false."),
         pagina: z.number().int().min(1).max(1000).default(1).describe("Page number (starts at 1, max 1000)."),
         resultatenPerPagina: z.number().int().min(1).max(100).default(10).describe("Results per page (max 100)."),
       }),
     },
-    async ({ naam, kvkNummer, rsin, vestigingsnummer, straatnaam, plaats, postcode, huisnummer, huisletter, postbusnummer, type, InclusiefInactieveRegistraties, pagina, resultatenPerPagina }) => {
+    async ({ naam, kvkNummer, rsin, vestigingsnummer, straatnaam, plaats, postcode, huisnummer, huisletter, postbusnummer, type, inclusiefInactieveRegistraties, pagina, resultatenPerPagina }) => {
       try {
         const hasParam = naam ?? kvkNummer ?? rsin ?? vestigingsnummer ?? straatnaam ?? plaats ?? postcode ?? type;
 
@@ -72,7 +72,7 @@ export const registerSearchTools = (server: McpServer, client: KvkClient): void 
           huisletter,
           postbusnummer,
           type,
-          InclusiefInactieveRegistraties,
+          inclusiefInactieveRegistraties,
           pagina,
           resultatenPerPagina,
         });

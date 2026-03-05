@@ -1,7 +1,7 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import * as z from "zod/v4";
 import type { KvkClient } from "../kvk-client.js";
-import type { Adres, SbiActiviteit, NaamgevingVestiging } from "../types.js";
+import type { Adres, SbiActiviteit, NaamgevingVestiging, VestigingList } from "../types.js";
 import { toTextResult, toErrorResult } from "../tool-result.js";
 
 const formatAdres = (adres: Adres): string => {
@@ -38,11 +38,12 @@ export const registerProfileTools = (server: McpServer, client: KvkClient): void
 
       inputSchema: z.object({
         kvkNummer: z.string().regex(/^\d{8}$/).describe("KVK number (8 digits)."),
+        geoData: z.boolean().optional().describe("Include BAG geo/cadastral data in address results. Default false."),
       }),
     },
-    async ({ kvkNummer }) => {
+    async ({ kvkNummer, geoData }) => {
       try {
-        const profiel = await client.getBasisprofiel(kvkNummer);
+        const profiel = await client.getBasisprofiel(kvkNummer, geoData);
 
         const lines = [
           `Company: ${profiel.naam}`,
@@ -88,11 +89,12 @@ export const registerProfileTools = (server: McpServer, client: KvkClient): void
 
       inputSchema: z.object({
         vestigingsnummer: z.string().regex(/^\d{12}$/).describe("Vestigingsnummer / location number (12 digits)."),
+        geoData: z.boolean().optional().describe("Include BAG geo/cadastral data in address results. Default false."),
       }),
     },
-    async ({ vestigingsnummer }) => {
+    async ({ vestigingsnummer, geoData }) => {
       try {
-        const profiel = await client.getVestigingsprofiel(vestigingsnummer);
+        const profiel = await client.getVestigingsprofiel(vestigingsnummer, geoData);
 
         const lines = [
           profiel.eersteHandelsnaam ? `Name: ${profiel.eersteHandelsnaam}` : null,
@@ -190,6 +192,165 @@ export const registerProfileTools = (server: McpServer, client: KvkClient): void
         return toTextResult(
           lines.join("\n"),
           naamgeving as unknown as Record<string, unknown>,
+        );
+      } catch (error) {
+        return toErrorResult(error);
+      }
+    },
+  );
+
+  server.registerTool(
+    "get_company_owner",
+    {
+      title: "Get Company Owner",
+      description:
+        "Get the owner (eigenaar) of a company by KVK number. " +
+        "Returns RSIN, legal form (rechtsvorm), addresses, and websites.",
+      annotations: { readOnlyHint: true, openWorldHint: true },
+
+      inputSchema: z.object({
+        kvkNummer: z.string().regex(/^\d{8}$/).describe("KVK number (8 digits)."),
+        geoData: z.boolean().optional().describe("Include BAG geo/cadastral data in address results. Default false."),
+      }),
+    },
+    async ({ kvkNummer, geoData }) => {
+      try {
+        const eigenaar = await client.getEigenaar(kvkNummer, geoData);
+
+        const lines = [
+          `KVK number: ${kvkNummer}`,
+          eigenaar.rsin ? `RSIN: ${eigenaar.rsin}` : null,
+          eigenaar.rechtsvorm ? `Legal form: ${eigenaar.rechtsvorm}` : null,
+          eigenaar.uitgebreideRechtsvorm ? `Extended legal form: ${eigenaar.uitgebreideRechtsvorm}` : null,
+        ].filter(Boolean);
+
+        if (eigenaar.adressen && eigenaar.adressen.length > 0) {
+          lines.push("", "Addresses:");
+          for (const adres of eigenaar.adressen) {
+            const typeLabel = adres.type ? `(${adres.type}) ` : "";
+            lines.push(`  - ${typeLabel}${formatAdres(adres)}`);
+          }
+        }
+
+        if (eigenaar.websites && eigenaar.websites.length > 0) {
+          lines.push("", "Websites:");
+          for (const site of eigenaar.websites) {
+            lines.push(`  - ${site}`);
+          }
+        }
+
+        return toTextResult(
+          lines.join("\n"),
+          eigenaar as unknown as Record<string, unknown>,
+        );
+      } catch (error) {
+        return toErrorResult(error);
+      }
+    },
+  );
+
+  server.registerTool(
+    "get_main_location",
+    {
+      title: "Get Main Location",
+      description:
+        "Get the main location (hoofdvestiging) for a company by KVK number. " +
+        "Returns location details including address, trade name, websites, SBI activities, and number of employees.",
+      annotations: { readOnlyHint: true, openWorldHint: true },
+
+      inputSchema: z.object({
+        kvkNummer: z.string().regex(/^\d{8}$/).describe("KVK number (8 digits)."),
+        geoData: z.boolean().optional().describe("Include BAG geo/cadastral data in address results. Default false."),
+      }),
+    },
+    async ({ kvkNummer, geoData }) => {
+      try {
+        const profiel = await client.getHoofdvestiging(kvkNummer, geoData);
+
+        const lines = [
+          profiel.eersteHandelsnaam ? `Name: ${profiel.eersteHandelsnaam}` : null,
+          `Vestigingsnummer: ${profiel.vestigingsnummer}`,
+          `KVK number: ${profiel.kvkNummer}`,
+          profiel.indHoofdvestiging !== undefined ? `Main location: ${profiel.indHoofdvestiging}` : null,
+          profiel.totaalWerkzamePersonen !== undefined ? `Employees: ${profiel.totaalWerkzamePersonen}` : null,
+        ].filter(Boolean);
+
+        if (profiel.adressen && profiel.adressen.length > 0) {
+          lines.push("", "Addresses:");
+          for (const adres of profiel.adressen) {
+            const typeLabel = adres.type ? `(${adres.type}) ` : "";
+            lines.push(`  - ${typeLabel}${formatAdres(adres)}`);
+          }
+        }
+
+        if (profiel.websites && profiel.websites.length > 0) {
+          lines.push("", "Websites:");
+          for (const site of profiel.websites) {
+            lines.push(`  - ${site}`);
+          }
+        }
+
+        if (profiel.sbiActiviteiten && profiel.sbiActiviteiten.length > 0) {
+          lines.push("", "SBI Activities:");
+          for (const act of profiel.sbiActiviteiten) {
+            lines.push(`  - ${formatActiviteit(act)}`);
+          }
+        }
+
+        if (profiel.handelsnamen && profiel.handelsnamen.length > 0) {
+          lines.push("", "Trade names:");
+          for (const hn of profiel.handelsnamen) {
+            lines.push(`  ${hn.volgorde}. ${hn.naam}`);
+          }
+        }
+
+        return toTextResult(
+          lines.join("\n"),
+          profiel as unknown as Record<string, unknown>,
+        );
+      } catch (error) {
+        return toErrorResult(error);
+      }
+    },
+  );
+
+  server.registerTool(
+    "get_company_locations",
+    {
+      title: "Get Company Locations",
+      description:
+        "List all locations (vestigingen) for a company by KVK number. " +
+        "Returns counts and a list of all commercial and non-commercial locations.",
+      annotations: { readOnlyHint: true, openWorldHint: true },
+
+      inputSchema: z.object({
+        kvkNummer: z.string().regex(/^\d{8}$/).describe("KVK number (8 digits)."),
+      }),
+    },
+    async ({ kvkNummer }) => {
+      try {
+        const result = await client.getVestigingen(kvkNummer);
+
+        const lines = [
+          `KVK number: ${result.kvkNummer}`,
+          `Commercial locations: ${result.aantalCommercieleVestigingen}`,
+          `Non-commercial locations: ${result.aantalNietCommercieleVestigingen}`,
+          `Total locations: ${result.totaalAantalVestigingen}`,
+        ];
+
+        if (result.vestigingen && result.vestigingen.length > 0) {
+          lines.push("", "Locations:");
+          for (const v of result.vestigingen) {
+            const type = v.indHoofdvestiging === "Ja" ? "hoofdvestiging" :
+              v.indCommercieleVestiging === "Ja" ? "commercieel" : "niet-commercieel";
+            const name = v.eersteHandelsnaam ? ` - ${v.eersteHandelsnaam}` : "";
+            lines.push(`  - ${v.vestigingsnummer}${name} (${type})`);
+          }
+        }
+
+        return toTextResult(
+          lines.join("\n"),
+          result as unknown as Record<string, unknown>,
         );
       } catch (error) {
         return toErrorResult(error);

@@ -87,10 +87,20 @@ describe("KvkClient", () => {
     it("includes boolean params", async () => {
       mockFetch.mockResolvedValueOnce(jsonResponse({ resultaten: [], totaal: 0 }));
 
-      await client.search({ naam: "test", InclusiefInactieveRegistraties: true });
+      await client.search({ naam: "test", inclusiefInactieveRegistraties: true });
 
       const [url] = mockFetch.mock.calls[0];
-      expect(url).toContain("InclusiefInactieveRegistraties=true");
+      expect(url).toContain("inclusiefInactieveRegistraties=true");
+    });
+
+    it("appends multiple type params", async () => {
+      mockFetch.mockResolvedValueOnce(jsonResponse({ resultaten: [], totaal: 0 }));
+
+      await client.search({ naam: "test", type: ["hoofdvestiging", "nevenvestiging"] });
+
+      const [url] = mockFetch.mock.calls[0];
+      expect(url).toContain("type=hoofdvestiging");
+      expect(url).toContain("type=nevenvestiging");
     });
 
     it("caches search results", async () => {
@@ -124,6 +134,24 @@ describe("KvkClient", () => {
       expect(url).toContain("/v1/basisprofielen/12345678");
     });
 
+    it("appends geoData query param when true", async () => {
+      mockFetch.mockResolvedValueOnce(jsonResponse({ kvkNummer: "12345678" }));
+
+      await client.getBasisprofiel("12345678", true);
+
+      const [url] = mockFetch.mock.calls[0];
+      expect(url).toContain("?geoData=true");
+    });
+
+    it("does not append geoData when false or undefined", async () => {
+      mockFetch.mockResolvedValueOnce(jsonResponse({ kvkNummer: "12345678" }));
+
+      await client.getBasisprofiel("12345678");
+
+      const [url] = mockFetch.mock.calls[0];
+      expect(url).not.toContain("geoData");
+    });
+
     it("caches basisprofiel results", async () => {
       mockFetch.mockResolvedValue(jsonResponse({ kvkNummer: "12345678" }));
 
@@ -131,6 +159,15 @@ describe("KvkClient", () => {
       await client.getBasisprofiel("12345678");
 
       expect(mockFetch).toHaveBeenCalledTimes(1);
+    });
+
+    it("uses separate cache keys for geoData true/false", async () => {
+      mockFetch.mockResolvedValue(jsonResponse({ kvkNummer: "12345678" }));
+
+      await client.getBasisprofiel("12345678", false);
+      await client.getBasisprofiel("12345678", true);
+
+      expect(mockFetch).toHaveBeenCalledTimes(2);
     });
   });
 
@@ -146,6 +183,15 @@ describe("KvkClient", () => {
       expect(url).toContain("/v1/vestigingsprofielen/000012345678");
     });
 
+    it("appends geoData query param when true", async () => {
+      mockFetch.mockResolvedValueOnce(jsonResponse({ vestigingsnummer: "000012345678" }));
+
+      await client.getVestigingsprofiel("000012345678", true);
+
+      const [url] = mockFetch.mock.calls[0];
+      expect(url).toContain("?geoData=true");
+    });
+
     it("caches vestigingsprofiel results", async () => {
       mockFetch.mockResolvedValue(jsonResponse({ vestigingsnummer: "000012345678" }));
 
@@ -153,6 +199,121 @@ describe("KvkClient", () => {
       await client.getVestigingsprofiel("000012345678");
 
       expect(mockFetch).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe("getEigenaar", () => {
+    it("fetches eigenaar by kvkNummer", async () => {
+      const eigenaar = { rsin: "123456789", rechtsvorm: "BV" };
+      mockFetch.mockResolvedValueOnce(jsonResponse(eigenaar));
+
+      const result = await client.getEigenaar("12345678");
+
+      expect(result).toEqual(eigenaar);
+      const [url] = mockFetch.mock.calls[0];
+      expect(url).toContain("/v1/basisprofielen/12345678/eigenaar");
+    });
+
+    it("appends geoData when true", async () => {
+      mockFetch.mockResolvedValueOnce(jsonResponse({}));
+
+      await client.getEigenaar("12345678", true);
+
+      const [url] = mockFetch.mock.calls[0];
+      expect(url).toContain("?geoData=true");
+    });
+  });
+
+  describe("getHoofdvestiging", () => {
+    it("fetches hoofdvestiging by kvkNummer", async () => {
+      const vestiging = { vestigingsnummer: "000012345678", kvkNummer: "12345678" };
+      mockFetch.mockResolvedValueOnce(jsonResponse(vestiging));
+
+      const result = await client.getHoofdvestiging("12345678");
+
+      expect(result).toEqual(vestiging);
+      const [url] = mockFetch.mock.calls[0];
+      expect(url).toContain("/v1/basisprofielen/12345678/hoofdvestiging");
+    });
+
+    it("appends geoData when true", async () => {
+      mockFetch.mockResolvedValueOnce(jsonResponse({}));
+
+      await client.getHoofdvestiging("12345678", true);
+
+      const [url] = mockFetch.mock.calls[0];
+      expect(url).toContain("?geoData=true");
+    });
+  });
+
+  describe("getVestigingen", () => {
+    it("fetches vestigingen list by kvkNummer", async () => {
+      const list = { kvkNummer: "12345678", totaalAantalVestigingen: 2, vestigingen: [] };
+      mockFetch.mockResolvedValueOnce(jsonResponse(list));
+
+      const result = await client.getVestigingen("12345678");
+
+      expect(result).toEqual(list);
+      const [url] = mockFetch.mock.calls[0];
+      expect(url).toContain("/v1/basisprofielen/12345678/vestigingen");
+    });
+  });
+
+  describe("listAbonnementen", () => {
+    it("fetches abonnementen list", async () => {
+      const response = { abonnementen: [{ abonnementId: "ab1" }] };
+      mockFetch.mockResolvedValueOnce(jsonResponse(response));
+
+      const result = await client.listAbonnementen();
+
+      expect(result).toEqual(response);
+      const [url] = mockFetch.mock.calls[0];
+      expect(url).toContain("/v1/abonnementen");
+    });
+  });
+
+  describe("listSignalen", () => {
+    it("fetches signalen with query params", async () => {
+      const response = { pagina: 1, aantal: 100, totaal: 1, signalen: [] };
+      mockFetch.mockResolvedValueOnce(jsonResponse(response));
+
+      await client.listSignalen({
+        abonnementId: "ab1",
+        vanaf: "2025-01-01T00:00:00Z",
+        tot: "2025-12-31T23:59:59Z",
+        pagina: 2,
+        aantal: 50,
+      });
+
+      const [url] = mockFetch.mock.calls[0];
+      expect(url).toContain("/v1/abonnementen/ab1");
+      expect(url).toContain("vanaf=");
+      expect(url).toContain("pagina=2");
+      expect(url).toContain("aantal=50");
+    });
+
+    it("omits optional params when not provided", async () => {
+      mockFetch.mockResolvedValueOnce(jsonResponse({ signalen: [] }));
+
+      await client.listSignalen({ abonnementId: "ab1" });
+
+      const [url] = mockFetch.mock.calls[0];
+      expect(url).toContain("/v1/abonnementen/ab1");
+      expect(url).not.toContain("vanaf");
+      expect(url).not.toContain("pagina");
+    });
+  });
+
+  describe("getSignaal", () => {
+    it("fetches a single signaal", async () => {
+      const signaal = { signaalId: "s1", abonnementId: "ab1" };
+      mockFetch.mockResolvedValueOnce(jsonResponse(signaal));
+
+      const result = await client.getSignaal("ab1", "s1");
+
+      expect(result).toEqual(signaal);
+      const [url] = mockFetch.mock.calls[0];
+      expect(url).toContain("/v1/abonnementen/ab1/signalen/s1");
     });
   });
 
