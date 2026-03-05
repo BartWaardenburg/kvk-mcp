@@ -1,5 +1,15 @@
 # Changelog
 
+# 0.3.0 (2026-03-05)
+
+
+### Features
+
+* add company owner, main location, and all locations profile tools
+* add mutation service tools (subscriptions, signals, signal details)
+* expand KVK client with eigenaar, hoofdvestiging, vestigingen, and mutatieservice endpoints
+
+
 # 0.2.0 (2026-03-04)
 
 
