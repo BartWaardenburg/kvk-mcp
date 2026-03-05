@@ -7,9 +7,22 @@
 [![CI](https://github.com/bartwaardenburg/kvk-mcp/actions/workflows/ci.yml/badge.svg)](https://github.com/bartwaardenburg/kvk-mcp/actions/workflows/ci.yml)
 [![Coverage](https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/BartWaardenburg/94cbbeb22ca67c47c0b8822624f77750/raw/kvk-mcp-coverage.json)](https://bartwaardenburg.github.io/kvk-mcp/)
 
+Een [Model Context Protocol](https://modelcontextprotocol.io) (MCP) server voor de [KVK API](https://developers.kvk.nl/) (Kamer van Koophandel). Doorzoek het Handelsregister, haal bedrijfsprofielen op, bekijk vestigingsgegevens en handelsnamen — allemaal via natuurlijke taal in je AI-app.
+
+> **Let op:** Dit is een onofficieel, community-onderhouden project en is niet verbonden aan of goedgekeurd door KVK.
+
 A community-built [Model Context Protocol](https://modelcontextprotocol.io) (MCP) server for the [KVK API](https://developers.kvk.nl/) (Kamer van Koophandel / Dutch Chamber of Commerce). Search the Handelsregister, retrieve company profiles, location details, and trade names — all through natural language via any MCP-compatible AI client.
 
 > **Note:** This is an unofficial, community-maintained project and is not affiliated with or endorsed by KVK.
+
+## Snel starten
+
+Je hoeft deze repo niet te clonen.
+
+1. Zorg dat Node.js 20+ is geïnstalleerd (je AI-app draait `npx` op je machine)
+2. Haal een KVK API-key op (zie [API Key Setup](#api-key-setup))
+3. Voeg de server toe als MCP server in je AI-app (kopieer onderstaande configuratie)
+4. Stel vragen in gewoon Nederlands (zie [Voorbeelden](#voorbeelden))
 
 ## Quick Start (Non-Developers)
 
@@ -349,6 +362,22 @@ When not set, all toolsets are enabled. Invalid names are ignored; if all names 
 | **KVK nummer** | 8 digits (e.g. `12345678`) | Unique company registration number |
 | **Vestigingsnummer** | 12 digits (e.g. `000012345678`) | Unique branch/location number |
 | **RSIN** | 9 digits (e.g. `123456789`) | Legal entity identifier (Rechtspersonen en Samenwerkingsverbanden Identificatienummer) |
+
+## Voorbeelden
+
+Eenmaal verbonden kun je in gewoon Nederlands vragen stellen:
+
+- "Zoek bedrijven met de naam 'Acme' in Amsterdam"
+- "Zoek KVK-nummer 12345678 op"
+- "Toon het bedrijfsprofiel voor KVK 69599084"
+- "Wat zijn de bedrijfsactiviteiten (SBI-codes) van dit bedrijf?"
+- "Geef de vestigingsgegevens voor vestigingsnummer 000012345678"
+- "Welke handelsnamen gebruikt KVK 12345678?"
+- "Vind alle actieve bedrijven op de Herengracht in Amsterdam"
+- "Hoeveel werknemers heeft dit bedrijf?"
+- "Wie is de eigenaar van KVK 12345678?"
+- "Wat is de hoofdvestiging van dit bedrijf?"
+- "Toon alle vestigingen voor KVK 12345678"
 
 ## Example Usage
 
