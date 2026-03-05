@@ -368,6 +368,13 @@ Once connected, you can interact with the KVK API using natural language:
 - "Show my mutation subscriptions"
 - "What changes have been signalled for this subscription?"
 
+## Community
+
+- Support: [SUPPORT.md](SUPPORT.md)
+- Security reporting: [SECURITY.md](SECURITY.md)
+- Contributing guidelines: [CONTRIBUTING.md](CONTRIBUTING.md)
+- Bug reports and feature requests: [Issues](https://github.com/bartwaardenburg/kvk-mcp/issues)
+
 ## Development
 
 ```bash
