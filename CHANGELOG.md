@@ -1,5 +1,11 @@
 # Changelog
 
+# [0.4.0](https://github.com/BartWaardenburg/kvk-mcp/compare/v0.3.0...v0.4.0) (2026-11-27)
+
+### Features
+
+* move to MCP TypeScript SDK v2 and spec 2026-07-28 ([#3](https://github.com/BartWaardenburg/kvk-mcp/issues/3)) ([2668d24](https://github.com/BartWaardenburg/kvk-mcp/commit/2668d243b3185bca6ad78beac3a672312ffc851c))
+
 # 0.3.0 (2026-03-05)
 
 
