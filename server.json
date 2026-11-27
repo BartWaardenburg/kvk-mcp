@@ -1,16 +1,52 @@
 {
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
   "name": "io.github.BartWaardenburg/kvk-mcp",
+  "title": "KVK Handelsregister",
   "description": "Search and retrieve company information from the KVK (Kamer van Koophandel) API",
-  "version": "0.1.0",
+  "repository": {
+    "url": "https://github.com/BartWaardenburg/kvk-mcp",
+    "source": "github"
+  },
+  "websiteUrl": "https://developers.kvk.nl/",
+  "version": "0.3.0",
   "packages": [
     {
       "registryType": "npm",
       "identifier": "kvk-mcp",
-      "version": "0.1.0",
+      "version": "0.3.0",
       "transport": {
         "type": "stdio"
-      }
+      },
+      "environmentVariables": [
+        {
+          "name": "KVK_API_KEY",
+          "description": "KVK API key",
+          "isRequired": true,
+          "isSecret": true,
+          "format": "string"
+        },
+        {
+          "name": "KVK_CACHE_TTL",
+          "description": "Cache time in seconds. Set 0 to disable the cache.",
+          "isRequired": false,
+          "isSecret": false,
+          "format": "string"
+        },
+        {
+          "name": "KVK_MAX_RETRIES",
+          "description": "Maximum retries for rate-limited requests. Default 3.",
+          "isRequired": false,
+          "isSecret": false,
+          "format": "string"
+        },
+        {
+          "name": "KVK_TOOLSETS",
+          "description": "Comma-separated toolsets to enable: search, profiles, mutations.",
+          "isRequired": false,
+          "isSecret": false,
+          "format": "string"
+        }
+      ]
     }
   ]
 }
