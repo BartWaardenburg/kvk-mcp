@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.4.1](https://github.com/BartWaardenburg/kvk-mcp/compare/v0.4.0...v0.4.1) (2026-11-27)
+
+### Bug Fixes
+
+* copy pnpm-workspace.yaml into the Docker build and build the image in CI ([538a3f5](https://github.com/BartWaardenburg/kvk-mcp/commit/538a3f595a827465d2816f958d0f75b2ce6ff0ea))
+
 # [0.4.0](https://github.com/BartWaardenburg/kvk-mcp/compare/v0.3.0...v0.4.0) (2026-11-27)
 
 ### Features
